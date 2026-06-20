@@ -1,0 +1,534 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — SKU Manager{% endblock %}
+
+{% block body %}
+<div class="flex h-screen overflow-hidden">
+
+  <!-- Sidebar -->
+  <aside class="w-60 bg-slate-900 flex flex-col flex-shrink-0">
+    <div class="p-5 border-b border-slate-700/50">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+          </svg>
+        </div>
+        <div>
+          <p class="text-white font-semibold text-sm leading-tight">SKU Manager</p>
+          <p class="text-slate-400 text-xs">Request Portal</p>
+        </div>
+      </div>
+    </div>
+
+    <nav class="flex-1 p-3 space-y-1">
+      <a href="/dashboard" class="flex items-center gap-3 px-3 py-2 rounded-lg text-white bg-slate-700/60 text-sm font-medium">
+        <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+        My Requests
+      </a>
+      {% if is_admin %}
+      <a href="/admin" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/40 text-sm transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        Admin Panel
+      </a>
+      {% endif %}
+    </nav>
+
+    <div class="p-3 border-t border-slate-700/50">
+      {% if catalog_count == 0 %}
+      <div class="px-3 py-2 mb-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+        <p class="text-amber-400 text-xs font-medium">No catalog loaded</p>
+        <p class="text-amber-500/60 text-xs">Ask admin to upload item master</p>
+      </div>
+      {% else %}
+      <div class="px-3 py-2 mb-2">
+        <p class="text-slate-500 text-xs">{{ catalog_count }} products loaded</p>
+      </div>
+      {% endif %}
+      <div class="flex items-center gap-3 px-3 py-2">
+        <div class="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+          {{ user.email[0].upper() }}
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-white text-xs font-medium truncate">{{ user.email }}</p>
+        </div>
+        <a href="/logout" class="text-slate-500 hover:text-slate-300 transition-colors" title="Sign out">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="flex-1 overflow-y-auto">
+    <div class="max-w-4xl mx-auto p-8">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <h1 class="text-xl font-bold text-slate-900">My Requests</h1>
+          <p class="text-slate-500 text-sm mt-0.5">Submit SKU requests for admin review</p>
+        </div>
+        <button onclick="openModal()"
+                class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white
+                       px-4 py-2.5 rounded-xl font-medium text-sm transition-colors shadow-sm">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          New Request
+        </button>
+      </div>
+
+      <!-- Request list -->
+      {% if requests %}
+      <div class="space-y-3">
+        {% for req in requests %}
+        {% set details = req.details | from_json %}
+        <div class="bg-white rounded-xl border border-slate-200 p-5 hover:border-slate-300 transition-colors">
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-xs font-mono text-slate-400">{{ req.request_id }}</span>
+                <span class="text-slate-300">·</span>
+                <span class="text-xs text-slate-500">{{ req.created_at | pretty_date }}</span>
+              </div>
+              <p class="font-semibold text-slate-800 text-sm">
+                {% if req.request_type == "new_combo" %}
+                  New {{ details.get("combo_type", "COMB") }} Combo
+                  {% if details.get("name") %} — {{ details.name }}{% endif %}
+                {% elif req.request_type == "new_sku" %}
+                  New SKU — {{ details.get("types", [])|join("+") }}
+                  {% if details.get("name") %} — {{ details.name }}{% endif %}
+                {% elif req.request_type == "new_pm" %}
+                  New Packaging — {{ details.get("pm_type", "") }}
+                  {% if details.get("description") %}: {{ details.description }}{% endif %}
+                {% endif %}
+              </p>
+              <p class="text-xs text-slate-500 mt-1">
+                Brand: <span class="font-medium text-slate-600">{{ req.brand }}</span>
+                {% if req.request_type == "new_combo" and details.get("components") %}
+                  · {{ details.components | length }} products
+                {% endif %}
+                {% if details.get("mrp") %} · MRP ₹{{ details.mrp }}{% endif %}
+              </p>
+              {% if req.status == "approved" and req.generated_skus %}
+              <div class="mt-2 flex flex-wrap gap-1.5">
+                {% for sku in req.generated_skus | from_json %}
+                <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs font-mono rounded-md border border-emerald-200">{{ sku }}</span>
+                {% endfor %}
+              </div>
+              {% endif %}
+              {% if req.status == "rejected" and req.admin_notes %}
+              <p class="mt-2 text-xs text-rose-600 bg-rose-50 px-2 py-1 rounded-md inline-block">{{ req.admin_notes }}</p>
+              {% endif %}
+            </div>
+            <div class="flex-shrink-0 flex items-center gap-2">
+              {% if req.status == "pending" %}
+              <span class="px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-medium rounded-full border border-amber-200">Pending</span>
+              {% elif req.status == "approved" %}
+              <span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-full border border-emerald-200">Approved</span>
+              {% elif req.status == "rejected" %}
+              <span class="px-2.5 py-1 bg-rose-50 text-rose-700 text-xs font-medium rounded-full border border-rose-200">Rejected</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% else %}
+      <div class="text-center py-20 text-slate-400">
+        <svg class="w-12 h-12 mx-auto mb-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+        <p class="text-sm font-medium text-slate-500">No requests yet</p>
+        <p class="text-xs text-slate-400 mt-1">Click "New Request" to get started</p>
+      </div>
+      {% endif %}
+
+    </div>
+  </main>
+</div>
+
+<!-- ── New Request Modal ──────────────────────────────────────────────────── -->
+<div id="modal-backdrop"
+     class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden items-center justify-center p-4"
+     onclick="if(event.target===this) closeModal()">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+
+    <!-- Modal header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+      <h2 class="text-base font-semibold text-slate-900">New Request</h2>
+      <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Tab bar -->
+    <div class="flex border-b border-slate-100 px-6">
+      <button onclick="switchTab('combo')" id="tab-combo"
+              class="tab-btn px-4 py-3 text-sm font-medium text-indigo-600 border-b-2 border-indigo-600 -mb-px">
+        Combo / Kit
+      </button>
+      <button onclick="switchTab('sku')" id="tab-sku"
+              class="tab-btn px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 border-b-2 border-transparent -mb-px">
+        New SKU
+      </button>
+      <button onclick="switchTab('pm')" id="tab-pm"
+              class="tab-btn px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 border-b-2 border-transparent -mb-px">
+        Packaging
+      </button>
+    </div>
+
+    <!-- Tab content -->
+    <div class="flex-1 overflow-y-auto p-6">
+
+      <!-- ── Combo tab ── -->
+      <div id="pane-combo">
+        <div x-data="comboForm()" class="space-y-4">
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="label">Brand</label>
+              <select x-model="brand" class="select">
+                {% for code, name in brands.items() %}
+                <option value="{{ code }}">{{ code }} — {{ name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label class="label">Type</label>
+              <select x-model="combo_type" class="select">
+                <option value="COMB">COMB — Combo</option>
+                <option value="GKIT">GKIT — Giftkit</option>
+                <option value="MNPK">MNPK — Miniature Pack</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="label">Combo Name</label>
+            <input type="text" x-model="combo_name" class="input" placeholder="e.g. Vitamin C Face Serum + Toner Combo">
+          </div>
+
+          <!-- Product search -->
+          <div>
+            <label class="label">Add Products</label>
+            <div class="relative">
+              <input type="text" x-model="searchQuery" @input.debounce.250ms="searchProducts()"
+                     @focus="showDropdown = true" @keydown.escape="showDropdown = false"
+                     class="input pr-10" placeholder="Search by name or code...">
+              <div x-show="searchQuery.length > 0" @click="searchQuery=''; results=[]" class="absolute right-3 top-2.5 cursor-pointer text-slate-400 hover:text-slate-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </div>
+            </div>
+            <!-- Dropdown -->
+            <div x-show="results.length > 0 && showDropdown" x-cloak
+                 class="mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto divide-y divide-slate-50">
+              <template x-for="p in results" :key="p.code">
+                <button type="button" @click="addProduct(p)"
+                        class="w-full text-left px-4 py-2.5 hover:bg-slate-50 transition-colors">
+                  <span class="font-mono text-xs text-slate-500" x-text="p.code"></span>
+                  <span class="mx-2 text-slate-300">—</span>
+                  <span class="text-sm text-slate-800" x-text="p.name"></span>
+                  <span class="text-xs text-slate-400 ml-2" x-text="p.mrp ? '₹' + p.mrp : ''"></span>
+                </button>
+              </template>
+            </div>
+          </div>
+
+          <!-- Selected components -->
+          <div x-show="selected.length > 0" x-cloak>
+            <label class="label">Components (<span x-text="selected.length"></span>)</label>
+            <div class="space-y-2">
+              <template x-for="(item, i) in selected" :key="item.code">
+                <div class="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5">
+                  <div class="flex-1 min-w-0">
+                    <p class="font-mono text-xs text-slate-500" x-text="item.code"></p>
+                    <p class="text-sm text-slate-800 truncate" x-text="item.name"></p>
+                  </div>
+                  <div class="flex items-center gap-2 flex-shrink-0">
+                    <div>
+                      <label class="text-xs text-slate-400 block text-center">Qty</label>
+                      <input type="number" x-model="item.qty" min="1"
+                             class="w-14 text-center border border-slate-200 rounded-lg px-2 py-1 text-sm">
+                    </div>
+                    <div>
+                      <label class="text-xs text-slate-400 block text-center">Price ₹</label>
+                      <input type="text" x-model="item.price"
+                             class="w-20 text-center border border-slate-200 rounded-lg px-2 py-1 text-sm">
+                    </div>
+                    <button @click="selected.splice(i,1)" class="text-slate-400 hover:text-rose-500 transition-colors mt-3">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <!-- Combo existence check -->
+          <div x-show="selected.length >= 2" x-cloak>
+            <button @click="checkCombo()" type="button"
+                    class="text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              Check if combo already exists
+            </button>
+            <div x-show="comboCheckResult" x-cloak class="mt-2 text-sm px-3 py-2 rounded-lg"
+                 :class="comboExists ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'"
+                 x-text="comboCheckResult"></div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="label">Approx MRP (₹)</label>
+              <input type="text" x-model="mrp" class="input" placeholder="999">
+            </div>
+            <div>
+              <label class="label">HSN Code</label>
+              <input type="text" x-model="hsn" class="input" placeholder="33049910">
+            </div>
+          </div>
+
+          <div>
+            <label class="label">Notes for admin</label>
+            <textarea x-model="notes" class="input h-16 resize-none" placeholder="Any special instructions..."></textarea>
+          </div>
+
+          <!-- Error banner -->
+          <div x-show="error" x-cloak class="px-4 py-3 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl" x-text="error"></div>
+
+          <button @click="submitCombo()" type="button"
+                  class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl text-sm transition-colors"
+                  :disabled="loading" :class="loading ? 'opacity-60 cursor-not-allowed' : ''">
+            <span x-text="loading ? 'Submitting...' : 'Submit Request'"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ── New SKU tab ── -->
+      <div id="pane-sku" class="hidden">
+        <form id="form-sku" class="space-y-4" onsubmit="submitForm(event, 'sku')">
+          <input type="hidden" name="request_type" value="new_sku">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="label">Brand</label>
+              <select name="brand" class="select">
+                {% for code, name in brands.items() %}
+                <option value="{{ code }}">{{ code }} — {{ name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label class="label">Variant of existing?</label>
+              <select name="is_variant" class="select">
+                <option value="no">No — New product</option>
+                <option value="yes">Yes — Same serial</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="label">SKU Types <span class="text-slate-400 font-normal">(select all that apply)</span></label>
+            <div class="flex flex-wrap gap-2 mt-1">
+              {% for tc, defn in type_defs.items() if defn.has_f and not defn.s_pair %}
+              <label class="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 transition-colors">
+                <input type="checkbox" name="types" value="{{ tc }}" class="accent-indigo-600">
+                <span class="text-sm font-medium text-slate-700">{{ tc }}</span>
+                <span class="text-xs text-slate-400">{{ defn.name }}</span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="label">Filling (ml)</label>
+              <input type="text" name="filling" class="input" placeholder="100">
+            </div>
+            <div>
+              <label class="label">Existing serial <span class="text-slate-400">(if variant)</span></label>
+              <input type="text" name="existing_serial" class="input" placeholder="e.g. 65">
+            </div>
+          </div>
+
+          <div>
+            <label class="label">Product Name</label>
+            <input type="text" name="product_name" class="input" placeholder="e.g. Vitamin C Face Serum">
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="label">Approx MRP (₹)</label>
+              <input type="text" name="mrp" class="input" placeholder="599">
+            </div>
+            <div>
+              <label class="label">HSN Code</label>
+              <input type="text" name="hsn" class="input" placeholder="33049910">
+            </div>
+          </div>
+
+          <div>
+            <label class="label">EAN / Barcode <span class="text-slate-400">(if known)</span></label>
+            <input type="text" name="ean" class="input" placeholder="8901234567890">
+          </div>
+
+          <div>
+            <label class="label">Notes</label>
+            <textarea name="notes" class="input h-16 resize-none" placeholder="Any additional info..."></textarea>
+          </div>
+
+          <div id="error-sku" class="hidden px-4 py-3 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl"></div>
+
+          <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl text-sm transition-colors">
+            Submit Request
+          </button>
+        </form>
+      </div>
+
+      <!-- ── Packaging tab ── -->
+      <div id="pane-pm" class="hidden">
+        <form id="form-pm" class="space-y-4" onsubmit="submitForm(event, 'pm')">
+          <input type="hidden" name="request_type" value="new_pm">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="label">Brand</label>
+              <select name="brand" class="select">
+                {% for code, name in brands.items() %}
+                <option value="{{ code }}">{{ code }} — {{ name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label class="label">Type</label>
+              <select name="pm_type" class="select">
+                {% for tc, defn in type_defs.items() if not defn.has_f %}
+                <option value="{{ tc }}">{{ tc }} — {{ defn.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="label">Description</label>
+            <input type="text" name="description" class="input" placeholder="e.g. 250ml Shipper Box">
+          </div>
+
+          <div>
+            <label class="label">Notes</label>
+            <textarea name="notes" class="input h-16 resize-none" placeholder="Dimensions, vendor, purpose..."></textarea>
+          </div>
+
+          <div id="error-pm" class="hidden px-4 py-3 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl"></div>
+
+          <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl text-sm transition-colors">
+            Submit Request
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+  .label { @apply block text-sm font-medium text-slate-700 mb-1.5; }
+  .input  { @apply w-full px-3 py-2.5 border border-slate-200 rounded-xl text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all; }
+  .select { @apply w-full px-3 py-2.5 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white; }
+</style>
+
+<script>
+function openModal()  { document.getElementById('modal-backdrop').classList.replace('hidden','flex'); }
+function closeModal() { document.getElementById('modal-backdrop').classList.replace('flex','hidden'); }
+
+function switchTab(name) {
+  ['combo','sku','pm'].forEach(t => {
+    document.getElementById('pane-'+t).classList.add('hidden');
+    document.getElementById('tab-'+t).classList.remove('text-indigo-600','border-indigo-600');
+    document.getElementById('tab-'+t).classList.add('text-slate-500','border-transparent');
+  });
+  document.getElementById('pane-'+name).classList.remove('hidden');
+  document.getElementById('tab-'+name).classList.add('text-indigo-600','border-indigo-600');
+  document.getElementById('tab-'+name).classList.remove('text-slate-500','border-transparent');
+}
+
+function comboForm() {
+  return {
+    brand: 'HYP', combo_type: 'COMB', combo_name: '', mrp: '', hsn: '', notes: '',
+    searchQuery: '', results: [], selected: [], showDropdown: false,
+    comboCheckResult: '', comboExists: false, error: '', loading: false,
+
+    async searchProducts() {
+      if (!this.searchQuery.trim()) { this.results = []; return; }
+      const r = await fetch('/api/products?q=' + encodeURIComponent(this.searchQuery) + '&brand=' + this.brand);
+      this.results = await r.json();
+      this.showDropdown = true;
+    },
+    addProduct(p) {
+      if (!this.selected.find(s => s.code === p.code)) {
+        this.selected.push({ code: p.code, name: p.name, qty: 1, price: p.mrp || '' });
+      }
+      this.searchQuery = ''; this.results = []; this.showDropdown = false;
+      this.comboCheckResult = ''; this.comboExists = false;
+    },
+    async checkCombo() {
+      const codes = this.selected.map(s => s.code).join(',');
+      const r = await fetch('/api/check-combo?codes=' + encodeURIComponent(codes));
+      const d = await r.json();
+      if (d.exists) {
+        this.comboExists = true;
+        this.comboCheckResult = 'Combo already exists: ' + d.bundles.join(', ');
+      } else {
+        this.comboExists = false;
+        this.comboCheckResult = 'No existing combo found. Safe to request!';
+      }
+    },
+    async submitCombo() {
+      this.error = '';
+      if (this.selected.length < 2) { this.error = 'Add at least 2 products.'; return; }
+      if (this.comboExists) { this.error = this.comboCheckResult; return; }
+      this.loading = true;
+      const fd = new FormData();
+      fd.append('request_type', 'new_combo');
+      fd.append('brand', this.brand);
+      fd.append('combo_type', this.combo_type);
+      fd.append('combo_name', this.combo_name);
+      fd.append('mrp', this.mrp);
+      fd.append('hsn', this.hsn);
+      fd.append('notes', this.notes);
+      fd.append('components_json', JSON.stringify(this.selected));
+      const res = await fetch('/request/submit', { method: 'POST', body: fd });
+      const d = await res.json();
+      this.loading = false;
+      if (d.error) { this.error = d.error; return; }
+      showToast('Request ' + d.request_id + ' submitted!', 'success');
+      closeModal();
+      setTimeout(() => location.reload(), 1000);
+    }
+  };
+}
+
+async function submitForm(evt, type) {
+  evt.preventDefault();
+  const form = evt.target;
+  const errEl = document.getElementById('error-' + type);
+  errEl.classList.add('hidden');
+  const fd = new FormData(form);
+  const res = await fetch('/request/submit', { method: 'POST', body: fd });
+  const d = await res.json();
+  if (d.error) { errEl.textContent = d.error; errEl.classList.remove('hidden'); return; }
+  showToast('Request ' + d.request_id + ' submitted!', 'success');
+  closeModal();
+  setTimeout(() => location.reload(), 1000);
+}
+</script>
+{% endblock %}

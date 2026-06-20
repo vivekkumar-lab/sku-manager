@@ -1,0 +1,418 @@
+{% extends "base.html" %}
+{% block title %}Admin — SKU Manager{% endblock %}
+
+{% block body %}
+<div class="flex h-screen overflow-hidden">
+
+  <!-- Sidebar -->
+  <aside class="w-60 bg-slate-900 flex flex-col flex-shrink-0">
+    <div class="p-5 border-b border-slate-700/50">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+          </svg>
+        </div>
+        <div>
+          <p class="text-white font-semibold text-sm leading-tight">SKU Manager</p>
+          <p class="text-indigo-400 text-xs font-medium">Admin Panel</p>
+        </div>
+      </div>
+    </div>
+
+    <nav class="flex-1 p-3 space-y-1">
+      <a href="/admin" class="flex items-center gap-3 px-3 py-2 rounded-lg text-white bg-slate-700/60 text-sm font-medium">
+        <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+        Request Queue
+      </a>
+      <button onclick="openUploadModal()" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/40 text-sm transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+        </svg>
+        Upload Item Master
+      </button>
+      <button onclick="openRegistryModal()" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/40 text-sm transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M10 4v16M6 4v16"/>
+        </svg>
+        Serial Registry
+      </button>
+      <a href="/dashboard" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/40 text-sm transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+        </svg>
+        My Requests
+      </a>
+    </nav>
+
+    <div class="p-3 border-t border-slate-700/50">
+      <div class="px-3 py-2 mb-1">
+        <p class="text-slate-500 text-xs">{{ catalog_count }} products in catalog</p>
+      </div>
+      <div class="flex items-center gap-3 px-3 py-2">
+        <div class="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+          {{ user.email[0].upper() }}
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-white text-xs font-medium truncate">{{ user.email }}</p>
+          <p class="text-indigo-400 text-xs">Admin</p>
+        </div>
+        <a href="/logout" class="text-slate-500 hover:text-slate-300 transition-colors" title="Sign out">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="flex-1 overflow-y-auto">
+    <div class="max-w-5xl mx-auto p-8">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h1 class="text-xl font-bold text-slate-900">Request Queue</h1>
+          <p class="text-slate-500 text-sm mt-0.5">Review, generate SKU codes, and export to Unicommerce</p>
+        </div>
+      </div>
+
+      <!-- Status filter tabs -->
+      <div class="flex gap-1 mb-6 bg-slate-100 rounded-xl p-1 w-fit">
+        {% for status, label in [('pending','Pending'), ('approved','Approved'), ('rejected','Rejected'), ('all','All')] %}
+        <a href="/admin?status={{ status }}"
+           class="px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2
+                  {% if status_filter == status %}bg-white text-slate-900 shadow-sm{% else %}text-slate-500 hover:text-slate-700{% endif %}">
+          {{ label }}
+          {% if counts[status] > 0 %}
+          <span class="{% if status == 'pending' and counts.pending > 0 %}bg-amber-100 text-amber-700{% elif status == 'approved' %}bg-emerald-100 text-emerald-700{% elif status == 'rejected' %}bg-rose-100 text-rose-700{% else %}bg-slate-200 text-slate-600{% endif %} text-xs px-1.5 py-0.5 rounded-full font-semibold">
+            {{ counts[status] }}
+          </span>
+          {% endif %}
+        </a>
+        {% endfor %}
+      </div>
+
+      <!-- Request cards -->
+      {% if requests %}
+      <div class="space-y-4">
+        {% for req in requests %}
+        {% set details = req.details | from_json %}
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden" id="req-{{ req.request_id }}">
+          <!-- Card header -->
+          <div class="flex items-start justify-between p-5 cursor-pointer" onclick="toggleCard('{{ req.request_id }}')">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-xs font-mono font-bold text-slate-500">{{ req.request_id }}</span>
+                <span class="text-slate-300">·</span>
+                <span class="text-xs text-slate-400">{{ req.created_at | pretty_date }}</span>
+                <span class="text-slate-300">·</span>
+                <span class="text-xs text-slate-600 font-medium">{{ req.requester_name or req.email }}</span>
+              </div>
+              <p class="font-semibold text-slate-800">
+                {% if req.request_type == "new_combo" %}
+                  <span class="text-indigo-600">COMBO</span> — {{ details.get("combo_type","COMB") }} · {{ req.brand }}
+                  {% if details.get("name") %}: {{ details.name }}{% endif %}
+                {% elif req.request_type == "new_sku" %}
+                  <span class="text-violet-600">SKU</span> — {{ details.get("types",[])|join("+") }} · {{ req.brand }}
+                  {% if details.get("name") %}: {{ details.name }}{% endif %}
+                {% elif req.request_type == "new_pm" %}
+                  <span class="text-sky-600">PM</span> — {{ details.get("pm_type","") }} · {{ req.brand }}
+                  {% if details.get("description") %}: {{ details.description }}{% endif %}
+                {% endif %}
+              </p>
+            </div>
+            <div class="flex items-center gap-3 flex-shrink-0 ml-4">
+              {% if req.status == "pending" %}
+              <span class="px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-medium rounded-full border border-amber-200">Pending</span>
+              {% elif req.status == "approved" %}
+              <span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-full border border-emerald-200">Approved</span>
+              {% elif req.status == "rejected" %}
+              <span class="px-2.5 py-1 bg-rose-50 text-rose-700 text-xs font-medium rounded-full border border-rose-200">Rejected</span>
+              {% endif %}
+              <svg class="w-4 h-4 text-slate-400 transition-transform" id="chevron-{{ req.request_id }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Expanded detail -->
+          <div class="hidden border-t border-slate-100" id="detail-{{ req.request_id }}">
+            <div class="p-5 bg-slate-50/50 space-y-4">
+
+              <!-- Request details -->
+              <div class="grid grid-cols-2 gap-4 text-sm">
+                {% if req.request_type == "new_combo" %}
+                <div>
+                  <p class="text-xs text-slate-400 mb-1">Components ({{ details.get("components",[])|length }})</p>
+                  <div class="space-y-1">
+                    {% for comp in details.get("components", []) %}
+                    <div class="flex items-center gap-2">
+                      <span class="font-mono text-xs bg-white border border-slate-200 px-2 py-0.5 rounded">{{ comp.code }}</span>
+                      <span class="text-slate-600 text-xs truncate">{{ comp.name }}</span>
+                      <span class="text-slate-400 text-xs ml-auto">×{{ comp.qty }}{% if comp.price %} @ ₹{{ comp.price }}{% endif %}</span>
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+                {% elif req.request_type == "new_sku" %}
+                <div>
+                  <p class="text-xs text-slate-400 mb-1">Types</p>
+                  <p class="font-mono font-medium">{{ details.get("types",[])|join(" + ") }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-slate-400 mb-1">Filling</p>
+                  <p class="font-medium">{{ details.get("filling","—") }} ml</p>
+                </div>
+                {% if details.get("variant") %}
+                <div>
+                  <p class="text-xs text-slate-400 mb-1">Existing serial</p>
+                  <p class="font-mono font-medium">{{ details.get("existing_serial","—") }}</p>
+                </div>
+                {% endif %}
+                {% endif %}
+
+                {% if details.get("mrp") %}
+                <div>
+                  <p class="text-xs text-slate-400 mb-1">Approx MRP</p>
+                  <p class="font-medium">₹{{ details.mrp }}</p>
+                </div>
+                {% endif %}
+                {% if details.get("hsn") %}
+                <div>
+                  <p class="text-xs text-slate-400 mb-1">HSN</p>
+                  <p class="font-mono font-medium">{{ details.hsn }}</p>
+                </div>
+                {% endif %}
+                {% if details.get("notes") %}
+                <div class="col-span-2">
+                  <p class="text-xs text-slate-400 mb-1">Notes</p>
+                  <p class="text-slate-700">{{ details.notes }}</p>
+                </div>
+                {% endif %}
+              </div>
+
+              <!-- Generated SKUs (if approved) -->
+              {% if req.status == "approved" and req.generated_skus %}
+              <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                <p class="text-xs text-emerald-600 font-medium mb-2">Generated SKUs</p>
+                <div class="flex flex-wrap gap-2">
+                  {% for sku in req.generated_skus | from_json %}
+                  <span class="px-3 py-1.5 bg-white border border-emerald-300 text-emerald-800 font-mono text-sm rounded-lg shadow-sm">{{ sku }}</span>
+                  {% endfor %}
+                </div>
+                <a href="/admin/download/{{ req.request_id }}"
+                   class="mt-3 inline-flex items-center gap-2 text-sm text-emerald-700 font-medium hover:text-emerald-900">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                  </svg>
+                  Download Unicommerce CSV
+                </a>
+              </div>
+              {% endif %}
+
+              {% if req.status == "rejected" and req.admin_notes %}
+              <div class="bg-rose-50 border border-rose-200 rounded-xl p-3">
+                <p class="text-xs text-rose-500 mb-1">Rejection reason</p>
+                <p class="text-sm text-rose-700">{{ req.admin_notes }}</p>
+              </div>
+              {% endif %}
+
+              <!-- Action buttons -->
+              {% if req.status == "pending" %}
+              <div class="flex items-center gap-3 pt-2" id="actions-{{ req.request_id }}">
+                <button onclick="generateSKU('{{ req.request_id }}')"
+                        class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                  </svg>
+                  Generate SKU & Approve
+                </button>
+                <button onclick="openRejectModal('{{ req.request_id }}')"
+                        class="px-4 py-2.5 border border-rose-200 text-rose-600 hover:bg-rose-50 font-medium rounded-xl text-sm transition-colors">
+                  Reject
+                </button>
+              </div>
+              <div id="gen-result-{{ req.request_id }}" class="hidden"></div>
+              {% endif %}
+
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% else %}
+      <div class="text-center py-20 text-slate-400">
+        <svg class="w-12 h-12 mx-auto mb-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+        <p class="text-sm font-medium text-slate-500">No {{ status_filter }} requests</p>
+      </div>
+      {% endif %}
+
+    </div>
+  </main>
+</div>
+
+<!-- ── Upload CSV Modal ── -->
+<div id="upload-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-semibold text-slate-900">Upload Item Master CSV</h2>
+      <button onclick="closeUploadModal()" class="text-slate-400 hover:text-slate-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <p class="text-sm text-slate-500 mb-4">Upload the Unicommerce item master export. This replaces the current catalog and updates serial pools.</p>
+    <div class="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center mb-4" id="drop-zone">
+      <svg class="w-8 h-8 text-slate-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+      </svg>
+      <label class="cursor-pointer">
+        <span class="text-sm text-indigo-600 font-medium hover:text-indigo-800">Choose CSV file</span>
+        <input type="file" id="csv-file-input" accept=".csv" class="hidden" onchange="handleFileSelect(this)">
+      </label>
+      <p class="text-xs text-slate-400 mt-1" id="file-name">No file selected</p>
+    </div>
+    <div id="upload-error" class="hidden mb-3 px-3 py-2 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl"></div>
+    <div id="upload-success" class="hidden mb-3 px-3 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl"></div>
+    <button onclick="uploadCSV()" id="upload-btn"
+            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors disabled:opacity-60">
+      Upload & Sync
+    </button>
+  </div>
+</div>
+
+<!-- ── Serial Registry Modal ── -->
+<div id="registry-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 max-h-[80vh] overflow-hidden flex flex-col">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-semibold text-slate-900">Serial Registry</h2>
+      <button onclick="closeRegistryModal()" class="text-slate-400 hover:text-slate-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div id="registry-content" class="flex-1 overflow-y-auto">
+      <p class="text-slate-400 text-sm text-center py-8">Loading...</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── Reject Modal ── -->
+<div id="reject-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+    <h2 class="font-semibold text-slate-900 mb-3">Reject Request</h2>
+    <input type="hidden" id="reject-req-id">
+    <label class="block text-sm text-slate-600 mb-1.5">Reason <span class="text-slate-400">(optional)</span></label>
+    <textarea id="reject-notes" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm resize-none h-20 focus:outline-none focus:ring-2 focus:ring-rose-400" placeholder="Why is this being rejected?"></textarea>
+    <div class="flex gap-3 mt-4">
+      <button onclick="confirmReject()" class="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors">Reject</button>
+      <button onclick="closeRejectModal()" class="px-4 py-2.5 border border-slate-200 text-slate-600 font-medium rounded-xl text-sm hover:bg-slate-50 transition-colors">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Card toggle ──
+function toggleCard(id) {
+  const detail = document.getElementById('detail-' + id);
+  const chevron = document.getElementById('chevron-' + id);
+  detail.classList.toggle('hidden');
+  chevron.style.transform = detail.classList.contains('hidden') ? '' : 'rotate(180deg)';
+}
+
+// ── Generate SKU ──
+async function generateSKU(reqId) {
+  const btn = document.querySelector(`#actions-${reqId} button:first-child`);
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+
+  const res = await fetch('/admin/generate/' + reqId, { method: 'POST' });
+  const d = await res.json();
+
+  if (d.error) {
+    showToast(d.error, 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg> Generate SKU & Approve';
+    return;
+  }
+
+  showToast('SKU generated! ' + d.skus.join(', '), 'success');
+  setTimeout(() => location.reload(), 1200);
+}
+
+// ── Reject ──
+function openRejectModal(id) { document.getElementById('reject-req-id').value = id; document.getElementById('reject-modal').classList.replace('hidden','flex'); }
+function closeRejectModal()  { document.getElementById('reject-modal').classList.replace('flex','hidden'); }
+
+async function confirmReject() {
+  const id    = document.getElementById('reject-req-id').value;
+  const notes = document.getElementById('reject-notes').value;
+  const res = await fetch('/admin/reject/' + id, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notes })
+  });
+  const d = await res.json();
+  if (d.success) { showToast('Request rejected.', 'info'); setTimeout(() => location.reload(), 800); }
+  closeRejectModal();
+}
+
+// ── Upload CSV ──
+let selectedFile = null;
+function openUploadModal()  { document.getElementById('upload-modal').classList.replace('hidden','flex'); }
+function closeUploadModal() { document.getElementById('upload-modal').classList.replace('flex','hidden'); }
+function handleFileSelect(input) {
+  selectedFile = input.files[0];
+  document.getElementById('file-name').textContent = selectedFile ? selectedFile.name : 'No file selected';
+}
+
+async function uploadCSV() {
+  if (!selectedFile) { showToast('Select a CSV file first.', 'error'); return; }
+  const btn = document.getElementById('upload-btn');
+  btn.disabled = true; btn.textContent = 'Uploading...';
+  const fd = new FormData();
+  fd.append('csv_file', selectedFile);
+  const res = await fetch('/admin/upload-csv', { method: 'POST', body: fd });
+  const d = await res.json();
+  btn.disabled = false; btn.textContent = 'Upload & Sync';
+  const errEl = document.getElementById('upload-error');
+  const okEl  = document.getElementById('upload-success');
+  if (d.error) {
+    errEl.textContent = d.error; errEl.classList.remove('hidden'); okEl.classList.add('hidden');
+  } else {
+    okEl.textContent = `Synced ${d.products} products and ${d.bundles} combos.`;
+    okEl.classList.remove('hidden'); errEl.classList.add('hidden');
+    showToast('Catalog updated!', 'success');
+  }
+}
+
+// ── Registry ──
+function openRegistryModal() {
+  document.getElementById('registry-modal').classList.replace('hidden','flex');
+  fetch('/api/registry').then(r => r.json()).then(data => {
+    if (!data.length) { document.getElementById('registry-content').innerHTML = '<p class="text-slate-400 text-sm text-center py-8">No products loaded yet.</p>'; return; }
+    let html = '<table class="w-full text-sm"><thead><tr class="text-left border-b border-slate-100"><th class="pb-2 text-xs text-slate-400 font-medium">Brand</th><th class="pb-2 text-xs text-slate-400 font-medium">Pool</th><th class="pb-2 text-xs text-slate-400 font-medium text-right">Current</th><th class="pb-2 text-xs text-slate-400 font-medium text-right">Next</th></tr></thead><tbody>';
+    let lastBrand = '';
+    data.forEach(r => {
+      const brandChange = r.brand !== lastBrand;
+      lastBrand = r.brand;
+      html += `<tr class="${brandChange && data.indexOf(r) > 0 ? 'border-t border-slate-100' : ''}">
+        <td class="py-2 font-medium text-slate-700">${brandChange ? r.brand : ''}</td>
+        <td class="py-2 font-mono text-slate-600">${r.pool}</td>
+        <td class="py-2 text-right font-mono text-slate-500">${String(r.current).padStart(4,'0')}</td>
+        <td class="py-2 text-right font-mono font-bold text-indigo-600">${String(r.next).padStart(4,'0')}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    document.getElementById('registry-content').innerHTML = html;
+  });
+}
+function closeRegistryModal() { document.getElementById('registry-modal').classList.replace('flex','hidden'); }
+</script>
+{% endblock %}
