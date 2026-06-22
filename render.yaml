@@ -17,9 +17,9 @@ services:
         sync: false          # fill this in the Render dashboard
       - key: ALLOWED_DOMAINS
         value: mcaffeine.com
-      - key: RESEND_API_KEY
+      - key: BREVO_API_KEY
         sync: false
       - key: FROM_EMAIL
-        value: onboarding@resend.dev
+        sync: false
       - key: SMTP_FROM_NAME
         value: SKU Manager
