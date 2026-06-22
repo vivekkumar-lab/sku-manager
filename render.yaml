@@ -3,7 +3,7 @@ services:
     name: sku-manager
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    startCommand: gunicorn --timeout 120 --workers 2 app:app
     disk:
       name: sku-data
       mountPath: /data
