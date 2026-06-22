@@ -17,13 +17,9 @@ services:
         sync: false          # fill this in the Render dashboard
       - key: ALLOWED_DOMAINS
         value: mcaffeine.com
-      - key: SMTP_HOST
+      - key: RESEND_API_KEY
         sync: false
-      - key: SMTP_PORT
-        value: "587"
-      - key: SMTP_USER
-        sync: false
-      - key: SMTP_PASS
-        sync: false
+      - key: FROM_EMAIL
+        value: onboarding@resend.dev
       - key: SMTP_FROM_NAME
         value: SKU Manager

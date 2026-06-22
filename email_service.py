@@ -1,19 +1,16 @@
 """
-Email OTP service. Reads SMTP config from environment variables.
+Email OTP service.
 
-Required env vars:
-  SMTP_HOST  — e.g. smtp.gmail.com
-  SMTP_PORT  — e.g. 587
-  SMTP_USER  — sender address
-  SMTP_PASS  — app password / SMTP password
+Uses Resend (https://resend.com) — works on all cloud hosts including Render free tier.
+Set RESEND_API_KEY in environment. Leave blank to print OTPs to console (dev mode).
 
 Optional:
+  FROM_EMAIL    — sender address (default: onboarding@resend.dev for testing,
+                  or noreply@yourdomain.com once domain is verified in Resend)
   SMTP_FROM_NAME — display name (default: SKU Manager)
 """
 
-import smtplib, secrets, os
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+import secrets, os
 
 
 def generate_otp(length=6):
@@ -22,21 +19,14 @@ def generate_otp(length=6):
 
 def send_otp(to_email, otp):
     """Send OTP email. Returns (True, None) on success or (False, error_message)."""
-    host = os.environ.get("SMTP_HOST", "")
-    port = int(os.environ.get("SMTP_PORT", 587))
-    user = os.environ.get("SMTP_USER", "")
-    password = os.environ.get("SMTP_PASS", "")
-    from_name = os.environ.get("SMTP_FROM_NAME", "SKU Manager")
+    api_key = os.environ.get("RESEND_API_KEY", "")
 
-    if not all([host, user, password]):
-        # Dev mode: print OTP to console instead of sending email
-        print(f"\n[DEV] OTP for {to_email}: {otp}\n")
+    if not api_key:
+        print(f"\n[DEV] OTP for {to_email}: {otp}\n", flush=True)
         return True, None
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"Your SKU Manager OTP: {otp}"
-    msg["From"] = f"{from_name} <{user}>"
-    msg["To"] = to_email
+    from_name  = os.environ.get("SMTP_FROM_NAME", "SKU Manager")
+    from_email = os.environ.get("FROM_EMAIL", "onboarding@resend.dev")
 
     text_body = f"Your one-time password is: {otp}\n\nExpires in 10 minutes."
     html_body = f"""
@@ -51,15 +41,16 @@ def send_otp(to_email, otp):
       </p>
     </div>"""
 
-    msg.attach(MIMEText(text_body, "plain"))
-    msg.attach(MIMEText(html_body, "html"))
-
     try:
-        with smtplib.SMTP(host, port, timeout=15) as server:
-            server.ehlo()
-            server.starttls()
-            server.login(user, password)
-            server.sendmail(user, to_email, msg.as_string())
+        import resend
+        resend.api_key = api_key
+        resend.Emails.send({
+            "from": f"{from_name} <{from_email}>",
+            "to":   [to_email],
+            "subject": f"Your SKU Manager sign-in code: {otp}",
+            "text": text_body,
+            "html": html_body,
+        })
         return True, None
     except Exception as e:
         return False, str(e)
